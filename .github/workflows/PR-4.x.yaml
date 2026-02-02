@@ -1,55 +1,182 @@
 name: PR:4.x
 
 on:
-  pull_request:
-    branches:
-      - 4.x
+    pull_request:
+        branches:
+            - 4.x
+
+concurrency:
+    group: OCV-PR-Linux-${{ github.ref }}
+    cancel-in-progress: true
 
 jobs:
+    Ubuntu:
+        runs-on: incredibuild-runner
+        strategy:
+            fail-fast: false
+            max-parallel: 3
+            matrix:
+                version:
+                    - "24.04"
+                    - "22.04"
+                    - "20.04"
+                include:
+                    - version: "24.04"
+                      image: "24.04:20251127"
+                      jpegxl: true
+                      avif: true
+                      avx2: true
+                      gphoto2: true
+                      aravis: true
+                    - version: "22.04"
+                      image: "22.04:20251015"
+                      avif: true
+                      plugins: true
+                    - version: "20.04"
+                      image: "20.04:20251015"
+                      limited_api: true
+        defaults:
+            run:
+                shell: bash
+        container:
+            image: "quay.io/opencv-ci/opencv-ubuntu-${{ matrix.image }}"
+        env:
+            ANT_HOME: "/usr/share/ant"
+            DNN_MODELS: "${{ github.workspace }}/dnn-models"
+            CCACHE_DIR: "${{ github.workspace }}/.ccache"
+            CCACHE_MAXSIZE: "8G"
+            OPENCV_DOWNLOAD_PATH: "${{ github.workspace }}/binaries_cache"
+            CMAKE_OPT: >-
+                -DBUILD_DOCS=ON
+                -DBUILD_EXAMPLES=ON
+                -DOPENCV_ENABLE_NONFREE=ON
+                -DWITH_IMGCODEC_GIF=ON
+                ${{ matrix.jpegxl && '-DWITH_JPEGXL=ON' }}
+                ${{ matrix.avif && '-DWITH_AVIF=ON' }}
+                ${{ matrix.gphoto2 && '-DWITH_GPHOTO2=ON' }}
+                ${{ matrix.aravis && '-DWITH_ARAVIS=ON' }}
+                ${{ matrix.avx2 && '-DCPU_BASELINE=AVX2'}}
+                ${{ matrix.plugins && '-DVIDEOIO_PLUGIN_LIST=all -DHIGHGUI_PLUGIN_LIST=all' }}
+                ${{ matrix.limited_api && '-DPYTHON3_LIMITED_API=ON' }}
+            HOME: "${{ github.workspace }}"
+            MAIN_BUILD_DIR: "${{ (github.event.repository.name != 'opencv_contrib') && 'build' || 'build-contrib' }}"
+            OPENCV_FOR_THREADS_NUM: 4
+            CMAKE_BUILD_PARALLEL_LEVEL: 4
 
-  Linux:
-    uses: opencv/ci-gha-workflow/.github/workflows/OCV-PR-Linux.yaml@main
-    with:
-      workflow_branch: main
+        steps:
+            - name: Checkout workflow repository
+              uses: actions/checkout@v4
+              with:
+                  repository: opencv/ci-gha-workflow
+                  ref: main
 
-  Windows:
-    uses: opencv/ci-gha-workflow/.github/workflows/OCV-PR-Windows.yaml@main
-    with:
-      workflow_branch: main
+            - name: Checkout and merge OpenCV
+              uses: ./checkout-and-merge
+              with:
+                  target_branch: "4.x"
+                  author: "${{ github.event.pull_request.user.login }}"
+                  source_branch: "${{ github.head_ref }}"
+                  home: "${{ env.HOME }}"
+                  workdir: "${{ env.HOME }}"
 
-  Ubuntu2404-ARM64:
-    uses: opencv/ci-gha-workflow/.github/workflows/OCV-PR-4.x-ARM64.yaml@main
+            - name: Create cache directories
+              run: |
+                  mkdir -p '${{ env.DNN_MODELS }}'
+                  mkdir -p '${{ env.CCACHE_DIR }}'
+                  mkdir -p '${{ env.OPENCV_DOWNLOAD_PATH }}'
 
-  Ubuntu2404-ARM64-Debug:
-    uses: opencv/ci-gha-workflow/.github/workflows/OCV-PR-4.x-ARM64-Debug.yaml@main
+            - name: Download DNN models
+              timeout-minutes: 60
+              working-directory: "${{ env.HOME }}"
+              run: |
+                  python3 opencv_extra/testdata/dnn/download_models.py \
+                    --dst '${{ env.DNN_MODELS }}/dnn'
+                  echo "OPENCV_DNN_TEST_DATA_PATH=${{ env.DNN_MODELS }}" >> $GITHUB_ENV
 
-  Ubuntu2004-x64-OpenVINO:
-    uses: opencv/ci-gha-workflow/.github/workflows/OCV-PR-4.x-U20-OpenVINO.yaml@main
+            - if: ${{ github.event.repository.name != 'opencv_contrib' }}
+              name: Configure OpenCV
+              working-directory: "${{ env.HOME }}"
+              run: |
+                  echo "::group::Configure"
+                  rm -rf build
+                  mkdir -p build
+                  cmake \
+                    -S opencv \
+                    -B build \
+                    -G Ninja \
+                    ${{ env.CMAKE_OPT }}
+                  echo "::endgroup::"
 
-  Ubuntu2004-x64-CUDA:
-    if: "${{ contains(github.event.pull_request.labels.*.name, 'category: dnn') }} || ${{ contains(github.event.pull_request.labels.*.name, 'category: dnn (onnx)') }}"
-    uses: opencv/ci-gha-workflow/.github/workflows/OCV-PR-4.x-U20-Cuda.yaml@main
+            - if: ${{ github.event.repository.name != 'opencv_contrib' }}
+              name: Build OpenCV
+              working-directory: "${{ env.HOME }}"
+              run: |
+                  set -x
+                  echo "::group::Build"
+                  cmake --build build 2>&1 | tee build/log.txt
+                  echo "::endgroup::"
 
-  macOS-ARM64:
-    uses: opencv/ci-gha-workflow/.github/workflows/OCV-PR-4.x-macOS-ARM64.yaml@main
+            - if: ${{ github.event.repository.name != 'opencv_contrib' }}
+              name: Check build warnings
+              run: |
+                  set +e
+                  python3 ./scripts/warnings-handling.py \
+                    '${{ env.HOME }}/build/log.txt'
+                  if [ $? -ne 0 ]; then
+                    echo "WARNINGS=1" >> $GITHUB_ENV
+                  fi
 
-  macOS-x64:
-    uses: opencv/ci-gha-workflow/.github/workflows/OCV-PR-4.x-macOS-x86_64.yaml@main
+            - name: Configure OpenCV with contrib
+              working-directory: "${{ env.HOME }}"
+              run: |
+                  echo "::group::Configure"
+                  rm -rf build-contrib
+                  mkdir -p build-contrib
+                  cmake \
+                    -S opencv \
+                    -B build-contrib \
+                    -G Ninja \
+                    -DOPENCV_EXTRA_MODULES_PATH=opencv_contrib/modules \
+                    ${{ env.CMAKE_OPT }}
+                  echo "::endgroup::"
 
-  macOS-ARM64-Vulkan:
-    uses: opencv/ci-gha-workflow/.github/workflows/OCV-PR-4.x-macOS-ARM64-Vulkan.yaml@main
+            - name: Build OpenCV with contrib
+              working-directory: "${{ env.HOME }}"
+              run: |
+                  set -x
+                  echo "::group::Build"
+                  cmake --build build-contrib 2>&1 | tee build-contrib/log.txt
+                  echo "::endgroup::"
 
-  iOS:
-    uses: opencv/ci-gha-workflow/.github/workflows/OCV-PR-4.x-iOS.yaml@main
+            - name: Check build-contrib warnings
+              run: |
+                  set +e
+                  python3 ./scripts/warnings-handling.py \
+                    '${{ env.HOME }}/build-contrib/log.txt'
+                  if [ $? -ne 0 ]; then
+                    echo "WARNINGS=1" >> $GITHUB_ENV
+                  fi
 
-  Android-SDK:
-    uses: opencv/ci-gha-workflow/.github/workflows/OCV-4.x-Android-SDK.yaml@main
+            - name: Run OpenCV tests
+              uses: ./run-tests
+              env:
+                  OPENCV_TEST_DATA_PATH: "${{ env.HOME }}/opencv_extra/testdata"
+                  OPENCV_TEST_REQUIRE_DATA: 1
+                  OPENCV_TEST_CHECK_OPTIONAL_DATA: 1
+                  PYTHONPATH: "${{ env.HOME }}/${{ env.MAIN_BUILD_DIR }}/python_loader:$PYTHONPATH"
+              with:
+                  workdir: "${{ env.HOME }}"
+                  builddir: "${{ env.MAIN_BUILD_DIR }}"
+                  logdir: "${{ env.HOME }}/${{ env.MAIN_BUILD_DIR }}"
+                  plan: "test-plan-4.x.json"
+                  suite: "[ ${{ (github.event.repository.name == 'opencv_contrib') && '''linux-contrib'''  || '''linux''' }} ]"
+                  filter: "[ 'ubuntu-common', ${{ matrix.avx2 && '''ubuntu-avx2''' }} ]"
+                  enable_python: "true"
+                  enable_java: "true"
+                  suffix: "${{ matrix.version }}_4.x"
 
-  TIM-VX:
-    uses: opencv/ci-gha-workflow/.github/workflows/OCV-timvx-backend-tests-4.x.yml@main
-
-  docs:
-    uses: opencv/ci-gha-workflow/.github/workflows/OCV-PR-4.x-docs.yaml@main
-
-  Linux-RISC-V-Clang:
-    uses: opencv/ci-gha-workflow/.github/workflows/OCV-PR-4.x-RISCV.yaml@main
+            - if: ${{ always() && env.WARNINGS == '1' }}
+              name: Warnings check
+              run: |
+                  echo "::error Warnings have been found!"
+                  exit 1
