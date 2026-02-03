@@ -52,6 +52,10 @@ jobs:
                   mkdir -p '${{ env.CCACHE_DIR }}'
                   mkdir -p '${{ env.OPENCV_DOWNLOAD_PATH }}'
 
+            - name: Install Python dependencies
+              run: |
+                  apt-get update && apt-get install -y python3-requests
+
             - name: Download DNN models
               timeout-minutes: 60
               working-directory: "${{ env.WORKDIR }}"
