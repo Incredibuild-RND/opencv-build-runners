@@ -50,6 +50,11 @@ jobs:
                   mkdir -p '${{ env.CCACHE_DIR }}'
                   mkdir -p '${{ env.OPENCV_DOWNLOAD_PATH }}'
 
+            - name: Install build tools
+              run: |
+                  apt-get update
+                  apt-get install -y cmake ninja-build
+
             - if: ${{ github.event.repository.name != 'opencv_contrib' }}
               name: Configure OpenCV
               working-directory: "${{ env.WORKDIR }}"
