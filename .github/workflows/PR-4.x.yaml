@@ -16,7 +16,6 @@ jobs:
             run:
                 shell: bash
         env:
-            DNN_MODELS: "${{ github.workspace }}/dnn-models"
             CCACHE_DIR: "${{ github.workspace }}/.ccache"
             CCACHE_MAXSIZE: "8G"
             OPENCV_DOWNLOAD_PATH: "${{ github.workspace }}/binaries_cache"
@@ -48,21 +47,8 @@ jobs:
 
             - name: Create cache directories
               run: |
-                  mkdir -p '${{ env.DNN_MODELS }}'
                   mkdir -p '${{ env.CCACHE_DIR }}'
                   mkdir -p '${{ env.OPENCV_DOWNLOAD_PATH }}'
-
-            - name: Install Python dependencies
-              run: |
-                  apt-get update && apt-get install -y python3-requests
-
-            - name: Download DNN models
-              timeout-minutes: 60
-              working-directory: "${{ env.WORKDIR }}"
-              run: |
-                  python3 opencv_extra/testdata/dnn/download_models.py \
-                    --dst '${{ env.DNN_MODELS }}/dnn'
-                  echo "OPENCV_DNN_TEST_DATA_PATH=${{ env.DNN_MODELS }}" >> $GITHUB_ENV
 
             - if: ${{ github.event.repository.name != 'opencv_contrib' }}
               name: Configure OpenCV
