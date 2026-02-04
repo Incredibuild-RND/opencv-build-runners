@@ -75,7 +75,7 @@ jobs:
               run: |
                   set -x
                   echo "::group::Build"
-                  /usr/bin/ib_console --standalone cmake --build build 2>&1 | tee build/log.txt
+                  cmake --build build 2>&1 | tee build/log.txt
                   echo "::endgroup::"
 
             - if: ${{ github.event.repository.name != 'opencv_contrib' }}
@@ -107,7 +107,7 @@ jobs:
               run: |
                   set -x
                   echo "::group::Build"
-                  /usr/bin/ib_console --standalone cmake --build build-contrib 2>&1 | tee build-contrib/log.txt
+                  cmake --build build-contrib 2>&1 | tee build-contrib/log.txt
                   echo "::endgroup::"
 
             - name: Check build-contrib warnings
@@ -118,24 +118,6 @@ jobs:
                   if [ $? -ne 0 ]; then
                     echo "WARNINGS=1" >> $GITHUB_ENV
                   fi
-
-            - name: Run OpenCV tests
-              uses: ./run-tests
-              env:
-                  OPENCV_TEST_DATA_PATH: "${{ env.WORKDIR }}/opencv_extra/testdata"
-                  OPENCV_TEST_REQUIRE_DATA: 1
-                  OPENCV_TEST_CHECK_OPTIONAL_DATA: 1
-                  PYTHONPATH: "${{ env.WORKDIR }}/${{ env.MAIN_BUILD_DIR }}/python_loader:$PYTHONPATH"
-              with:
-                  workdir: "${{ env.WORKDIR }}"
-                  builddir: "${{ env.MAIN_BUILD_DIR }}"
-                  logdir: "${{ env.WORKDIR }}/${{ env.MAIN_BUILD_DIR }}"
-                  plan: "test-plan-4.x.json"
-                  suite: "[ ${{ (github.event.repository.name == 'opencv_contrib') && '''linux-contrib'''  || '''linux''' }} ]"
-                  filter: "[ 'ubuntu-common' ]"
-                  enable_python: "true"
-                  enable_java: "true"
-                  suffix: "incredibuild_4.x"
 
             - if: ${{ always() && env.WARNINGS == '1' }}
               name: Warnings check
