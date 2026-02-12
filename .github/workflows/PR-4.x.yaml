@@ -84,6 +84,7 @@ jobs:
 
                   # Start Incredibuild with remapped folders
                   /opt/incredibuild/etc/init.d/incredibuild start
+                  ls -la /incredibuild/
 
             - name: Checkout workflow repository
               uses: actions/checkout@v4
