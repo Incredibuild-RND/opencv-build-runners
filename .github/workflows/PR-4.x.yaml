@@ -40,7 +40,7 @@ jobs:
               run: |
                   # Install Incredibuild
                   ls -la /ib-workspace/incredibuild/
-                  ls -la /ib-workspace/cache
+                  ls -la /ib-workspace/incredibuild/db/
                   /ib-workspace/incredibuild/incredibuild.ubin install -I -A /incredibuild -O localhost -D
 
                   # Stop Incredibuild before remapping folders
@@ -48,7 +48,7 @@ jobs:
 
                   # Configure folder mapping (after install so /incredibuild is populated)
                   IB_INSTALL_DIR="/incredibuild"
-                  VOLUME_DIR="/ib-workspace/cache"
+                  VOLUME_DIR="/ib-workspace/incredibuild"
                   SUBFOLDERS=("db" "cache" "log")
 
                   echo "Configuring Incredibuild folder mappings..."
