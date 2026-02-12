@@ -43,6 +43,7 @@ jobs:
                   ls -la /ib-workspace/incredibuild/
                   ls -la /ib-workspace/cache/db/
                   /ib-workspace/incredibuild/incredibuild.ubin install -I -A /incredibuild -O localhost -D
+                  ps aux
 
                   # Stop Incredibuild before remapping folders
                   /opt/incredibuild/etc/init.d/incredibuild stop
