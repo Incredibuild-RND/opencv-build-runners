@@ -20,7 +20,6 @@ jobs:
             options: --user root
             volumes:
                 - /ib-workspace:/ib-workspace
-                - /opt/incredibuild:/opt/incredibuild
         env:
             CCACHE_DIR: "${{ github.workspace }}/.ccache"
             CCACHE_MAXSIZE: "8G"
@@ -40,10 +39,7 @@ jobs:
               shell: bash
               run: |
                   # Verify the mounts and symlinks are intact
-                  ls -la /ib-workspace/incredibuild/cache
-                  ls -la /ib-workspace/incredibuild/db
-                  ls -laR /ib-workspace/incredibuild/
-                  ls -laR /opt/incredibuild/
+                  ls -la /ib-workspace/incredibuild/
 
                   # Start the daemon
                   /ib-workspace/incredibuild/incredibuild.ubin install -I -A /incredibuild -O localhost -D
