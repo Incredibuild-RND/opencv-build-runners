@@ -19,7 +19,8 @@ jobs:
             image: "quay.io/opencv-ci/opencv-ubuntu-24.04:20251127"
             options: --user root
             volumes:
-                - /ib-workspace:/ib-workspace
+                - /ib-workspace/incredibuild:/ib-workspace/incredibuild
+                - /ib-workspace/cache:/ib-workspace/cache
         env:
             CCACHE_DIR: "${{ github.workspace }}/.ccache"
             CCACHE_MAXSIZE: "8G"
@@ -40,7 +41,7 @@ jobs:
               run: |
                   # Install Incredibuild
                   ls -la /ib-workspace/incredibuild/
-                  ls -la /ib-workspace/incredibuild/db/
+                  ls -la /ib-workspace/cache/db/
                   /ib-workspace/incredibuild/incredibuild.ubin install -I -A /incredibuild -O localhost -D
 
                   # Stop Incredibuild before remapping folders
@@ -48,7 +49,7 @@ jobs:
 
                   # Configure folder mapping (after install so /incredibuild is populated)
                   IB_INSTALL_DIR="/incredibuild"
-                  VOLUME_DIR="/ib-workspace/incredibuild"
+                  VOLUME_DIR="/ib-workspace/cache"
                   SUBFOLDERS=("db" "cache" "log")
 
                   echo "Configuring Incredibuild folder mappings..."
