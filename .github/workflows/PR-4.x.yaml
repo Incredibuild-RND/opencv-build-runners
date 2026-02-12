@@ -42,6 +42,9 @@ jobs:
                   ls -la /ib-workspace/incredibuild/
                   /ib-workspace/incredibuild/incredibuild.ubin install -I -A /incredibuild -O localhost -D
 
+                  # Stop Incredibuild before remapping folders
+                  /opt/incredibuild/etc/init.d/incredibuild stop
+
                   # Configure folder mapping (after install so /incredibuild is populated)
                   IB_INSTALL_DIR="/incredibuild"
                   VOLUME_DIR="/ib-workspace/cache"
@@ -78,6 +81,9 @@ jobs:
                           ln -s "$VOL_DEST" "$TARGET_LINK"
                       fi
                   done
+
+                  # Start Incredibuild with remapped folders
+                  /opt/incredibuild/etc/init.d/incredibuild start
 
             - name: Checkout workflow repository
               uses: actions/checkout@v4
