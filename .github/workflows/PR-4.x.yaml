@@ -43,6 +43,7 @@ jobs:
                   # Verify the mounts and symlinks are intact
                   ls -la /ib-workspace/incredibuild/cache
                   ls -la /ib-workspace/incredibuild/db
+                  ls -la /opt/incredibuild/etc/init.d/incredibuild
 
                   # Start the daemon
                   /opt/incredibuild/etc/init.d/incredibuild start
