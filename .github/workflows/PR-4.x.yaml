@@ -19,8 +19,7 @@ jobs:
             image: "quay.io/opencv-ci/opencv-ubuntu-24.04:20251127"
             options: --user root
             volumes:
-                - /ib-workspace/incredibuild:/ib-workspace/incredibuild
-                - /ib-workspace/cache:/ib-workspace/cache
+                - /ib-workspace:/ib-workspace
                 - /opt/incredibuild:/opt/incredibuild
         env:
             CCACHE_DIR: "${{ github.workspace }}/.ccache"
