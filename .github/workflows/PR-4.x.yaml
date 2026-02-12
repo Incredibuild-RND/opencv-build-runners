@@ -17,7 +17,7 @@ jobs:
                 shell: bash
         container:
             image: "quay.io/opencv-ci/opencv-ubuntu-24.04:20251127"
-            options: --user root
+            options: --user root --init
             volumes:
                 - /ib-workspace/incredibuild:/ib-workspace/incredibuild
                 - /ib-workspace/cache:/ib-workspace/cache
