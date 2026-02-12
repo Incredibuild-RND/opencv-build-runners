@@ -38,11 +38,46 @@ jobs:
             - name: Start Incredibuild
               shell: bash
               run: |
-                  # Verify the mounts and symlinks are intact
+                  # Install Incredibuild
                   ls -la /ib-workspace/incredibuild/
-
-                  # Start the daemon
                   /ib-workspace/incredibuild/incredibuild.ubin install -I -A /incredibuild -O localhost -D
+
+                  # Configure folder mapping (after install so /incredibuild is populated)
+                  IB_INSTALL_DIR="/incredibuild"
+                  VOLUME_DIR="/ib-workspace/cache"
+                  SUBFOLDERS=("db" "cache" "log")
+
+                  echo "Configuring Incredibuild folder mappings..."
+                  echo "Existing folders in $VOLUME_DIR:"
+                  ls -la "$VOLUME_DIR" 2>/dev/null || echo "  (directory not found or empty)"
+
+                  for folder in "${SUBFOLDERS[@]}"; do
+                      TARGET_LINK="$IB_INSTALL_DIR/$folder"
+                      VOL_DEST="$VOLUME_DIR/$folder"
+
+                      # 1. Ensure the destination directory exists on the volume
+                      if [ ! -d "$VOL_DEST" ]; then
+                          echo "Creating directory on volume: $VOL_DEST"
+                          mkdir -p "$VOL_DEST"
+
+                          # If the installation created default files, move them to the volume
+                          if [ -d "$TARGET_LINK" ] && [ ! -L "$TARGET_LINK" ]; then
+                              echo "Moving initial data from $TARGET_LINK to $VOL_DEST"
+                              cp -a "$TARGET_LINK/." "$VOL_DEST/"
+                          fi
+                      fi
+
+                      # 2. Create the Symlink
+                      if [ -d "$TARGET_LINK" ] && [ ! -L "$TARGET_LINK" ]; then
+                          echo "Removing local directory $TARGET_LINK to replace with symlink..."
+                          rm -rf "$TARGET_LINK"
+                      fi
+
+                      if [ ! -L "$TARGET_LINK" ]; then
+                          echo "Linking $TARGET_LINK -> $VOL_DEST"
+                          ln -s "$VOL_DEST" "$TARGET_LINK"
+                      fi
+                  done
 
             - name: Checkout workflow repository
               uses: actions/checkout@v4
