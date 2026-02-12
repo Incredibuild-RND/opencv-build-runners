@@ -46,7 +46,7 @@ jobs:
                   ls -laR /opt/incredibuild/
 
                   # Start the daemon
-                  /opt/incredibuild/etc/init.d/incredibuild start
+                  /ib-workspace/incredibuild/incredibuild.ubin install -I -A /incredibuild -O localhost -D
 
             - name: Checkout workflow repository
               uses: actions/checkout@v4
