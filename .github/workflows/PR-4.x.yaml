@@ -15,82 +15,80 @@ jobs:
         defaults:
             run:
                 shell: bash
-        # container:
-        #     image: "quay.io/opencv-ci/opencv-ubuntu-24.04:20251127"
-        #     options: --user root --init
-        #     volumes:
-        #         - /ib-workspace/incredibuild:/ib-workspace/incredibuild
-        #         - /ib-workspace/cache:/ib-workspace/cache
+        container:
+            image: "quay.io/opencv-ci/opencv-ubuntu-24.04:20251127"
+            options: --user root --init
+            volumes:
+                - /ib-workspace/incredibuild:/ib-workspace/incredibuild
+                - /ib-workspace/cache:/ib-workspace/cache
         env:
-            CCACHE_DIR: "${{ github.workspace }}/.ccache"
             CCACHE_MAXSIZE: "8G"
-            OPENCV_DOWNLOAD_PATH: "${{ github.workspace }}/binaries_cache"
             CMAKE_OPT: >-
                 -DBUILD_DOCS=ON
                 -DBUILD_EXAMPLES=ON
                 -DOPENCV_ENABLE_NONFREE=ON
                 -DWITH_IMGCODEC_GIF=ON
-            WORKDIR: "${{ github.workspace }}"
             MAIN_BUILD_DIR: "${{ (github.event.repository.name != 'opencv_contrib') && 'build' || 'build-contrib' }}"
             OPENCV_FOR_THREADS_NUM: 4
             CMAKE_BUILD_PARALLEL_LEVEL: 4
 
         steps:
-            # - name: Start Incredibuild
-            #   shell: bash
-            #   run: |
-            #       # Install Incredibuild
-            #       ls -la /ib-workspace/incredibuild/
-            #       ls -la /ib-workspace/cache/db/
-            #       /ib-workspace/incredibuild/incredibuild.ubin install -I -A /incredibuild -O localhost -D
-            #       echo "ps after installation"
-            #       ps aux
+            - name: Start Incredibuild
+              shell: bash
+              run: |
+                  # Install Incredibuild
+                  ls -la /ib-workspace/incredibuild/
+                  ls -la /ib-workspace/cache/db/
+                  /ib-workspace/incredibuild/incredibuild.ubin install -I -A /incredibuild -O localhost -D
+                  echo "ps after installation" 
+                  ps aux
 
-            #       # Stop Incredibuild before remapping folders
-            #       /opt/incredibuild/etc/init.d/incredibuild stop
-            #       echo "ps after stop"
-            #       ps aux
+                  # Stop Incredibuild before remapping folders
+                  /opt/incredibuild/etc/init.d/incredibuild stop
+                  echo "ps after stop" 
+                  ps aux
 
-            #       # Configure folder mapping (after install so /incredibuild is populated)
-            #       IB_INSTALL_DIR="/incredibuild"
-            #       VOLUME_DIR="/ib-workspace/cache"
-            #       SUBFOLDERS=("db" "cache" "log")
 
-            #       echo "Configuring Incredibuild folder mappings..."
-            #       echo "Existing folders in $VOLUME_DIR:"
-            #       ls -la "$VOLUME_DIR" 2>/dev/null || echo "  (directory not found or empty)"
+                  # Configure folder mapping (after install so /incredibuild is populated)
+                  IB_INSTALL_DIR="/incredibuild"
+                  VOLUME_DIR="/ib-workspace/cache"
+                  SUBFOLDERS=("db" "cache" "log")
 
-            #       for folder in "${SUBFOLDERS[@]}"; do
-            #           TARGET_LINK="$IB_INSTALL_DIR/$folder"
-            #           VOL_DEST="$VOLUME_DIR/$folder"
+                  echo "Configuring Incredibuild folder mappings..."
+                  echo "Existing folders in $VOLUME_DIR:"
+                  ls -la "$VOLUME_DIR" 2>/dev/null || echo "  (directory not found or empty)"
 
-            #           # 1. Ensure the destination directory exists on the volume
-            #           if [ ! -d "$VOL_DEST" ]; then
-            #               echo "Creating directory on volume: $VOL_DEST"
-            #               mkdir -p "$VOL_DEST"
+                  for folder in "${SUBFOLDERS[@]}"; do
+                      TARGET_LINK="$IB_INSTALL_DIR/$folder"
+                      VOL_DEST="$VOLUME_DIR/$folder"
 
-            #               # If the installation created default files, move them to the volume
-            #               if [ -d "$TARGET_LINK" ] && [ ! -L "$TARGET_LINK" ]; then
-            #                   echo "Moving initial data from $TARGET_LINK to $VOL_DEST"
-            #                   cp -a "$TARGET_LINK/." "$VOL_DEST/"
-            #               fi
-            #           fi
+                      # 1. Ensure the destination directory exists on the volume
+                      if [ ! -d "$VOL_DEST" ]; then
+                          echo "Creating directory on volume: $VOL_DEST"
+                          mkdir -p "$VOL_DEST"
 
-            #           # 2. Create the Symlink
-            #           if [ -d "$TARGET_LINK" ] && [ ! -L "$TARGET_LINK" ]; then
-            #               echo "Removing local directory $TARGET_LINK to replace with symlink..."
-            #               rm -rf "$TARGET_LINK"
-            #           fi
+                          # If the installation created default files, move them to the volume
+                          if [ -d "$TARGET_LINK" ] && [ ! -L "$TARGET_LINK" ]; then
+                              echo "Moving initial data from $TARGET_LINK to $VOL_DEST"
+                              cp -a "$TARGET_LINK/." "$VOL_DEST/"
+                          fi
+                      fi
 
-            #           if [ ! -L "$TARGET_LINK" ]; then
-            #               echo "Linking $TARGET_LINK -> $VOL_DEST"
-            #               ln -s "$VOL_DEST" "$TARGET_LINK"
-            #           fi
-            #       done
+                      # 2. Create the Symlink
+                      if [ -d "$TARGET_LINK" ] && [ ! -L "$TARGET_LINK" ]; then
+                          echo "Removing local directory $TARGET_LINK to replace with symlink..."
+                          rm -rf "$TARGET_LINK"
+                      fi
 
-            #       # Start Incredibuild with remapped folders
-            #       /opt/incredibuild/etc/init.d/incredibuild restart
-            #       ls -la /incredibuild/
+                      if [ ! -L "$TARGET_LINK" ]; then
+                          echo "Linking $TARGET_LINK -> $VOL_DEST"
+                          ln -s "$VOL_DEST" "$TARGET_LINK"
+                      fi
+                  done
+
+                  # Start Incredibuild with remapped folders
+                  /opt/incredibuild/etc/init.d/incredibuild restart
+                  ls -la /incredibuild/
 
             - name: Checkout workflow repository
               uses: actions/checkout@v4
@@ -104,19 +102,19 @@ jobs:
                   target_branch: "4.x"
                   author: "${{ github.event.pull_request.user.login }}"
                   source_branch: "${{ github.head_ref }}"
-                  home: "${{ env.WORKDIR }}"
-                  workdir: "${{ env.WORKDIR }}"
+                  home: "${{ github.workspace }}"
+                  workdir: "${{ github.workspace }}"
 
             - name: Create cache directories
               run: |
-                  mkdir -p '${{ env.CCACHE_DIR }}'
-                  mkdir -p '${{ env.OPENCV_DOWNLOAD_PATH }}'
+                  mkdir -p "$GITHUB_WORKSPACE/.ccache"
+                  mkdir -p "$GITHUB_WORKSPACE/binaries_cache"
 
             - if: ${{ github.event.repository.name != 'opencv_contrib' }}
               name: Configure OpenCV
-              working-directory: "${{ env.WORKDIR }}"
               run: |
                   echo "::group::Configure"
+                  cd "$GITHUB_WORKSPACE"
                   rm -rf build
                   mkdir -p build
                   cmake \
@@ -128,10 +126,10 @@ jobs:
 
             - if: ${{ github.event.repository.name != 'opencv_contrib' }}
               name: Build OpenCV
-              working-directory: "${{ env.WORKDIR }}"
               run: |
                   set -x
                   echo "::group::Build"
+                  cd "$GITHUB_WORKSPACE"
                   /usr/bin/ib_console --standalone --build-cache-local-shared --build-cache-basedir=$PWD cmake --build build 2>&1 | tee build/log.txt
                   echo "::endgroup::"
 
@@ -140,15 +138,15 @@ jobs:
               run: |
                   set +e
                   python3 ./scripts/warnings-handling.py \
-                    '${{ env.WORKDIR }}/build/log.txt'
+                    "$GITHUB_WORKSPACE/build/log.txt"
                   if [ $? -ne 0 ]; then
                     echo "WARNINGS=1" >> $GITHUB_ENV
                   fi
 
             - name: Configure OpenCV with contrib
-              working-directory: "${{ env.WORKDIR }}"
               run: |
                   echo "::group::Configure"
+                  cd "$GITHUB_WORKSPACE"
                   rm -rf build-contrib
                   mkdir -p build-contrib
                   cmake \
@@ -160,10 +158,10 @@ jobs:
                   echo "::endgroup::"
 
             - name: Build OpenCV with contrib
-              working-directory: "${{ env.WORKDIR }}"
               run: |
                   set -x
                   echo "::group::Build"
+                  cd "$GITHUB_WORKSPACE"
                   /usr/bin/ib_console --standalone --build-cache-local-shared --build-cache-basedir=$PWD cmake --build build-contrib 2>&1 | tee build-contrib/log.txt
                   echo "::endgroup::"
 
@@ -171,7 +169,7 @@ jobs:
               run: |
                   set +e
                   python3 ./scripts/warnings-handling.py \
-                    '${{ env.WORKDIR }}/build-contrib/log.txt'
+                    "$GITHUB_WORKSPACE/build-contrib/log.txt"
                   if [ $? -ne 0 ]; then
                     echo "WARNINGS=1" >> $GITHUB_ENV
                   fi
