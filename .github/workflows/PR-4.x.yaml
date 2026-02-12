@@ -40,6 +40,7 @@ jobs:
               run: |
                   # Install Incredibuild
                   ls -la /ib-workspace/incredibuild/
+                  ls -la /ib-workspace/cache
                   /ib-workspace/incredibuild/incredibuild.ubin install -I -A /incredibuild -O localhost -D
 
                   # Stop Incredibuild before remapping folders
