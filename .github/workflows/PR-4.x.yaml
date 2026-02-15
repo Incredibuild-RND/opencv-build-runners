@@ -94,6 +94,7 @@ jobs:
                   ls -la /incredibuild/
                   ls -la /incredibuild/cache/
                   du -h /ib-workspace/cache/
+                  rm -f /usr/bin/ccache
 
             - name: Checkout workflow repository
               uses: actions/checkout@v4
