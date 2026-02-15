@@ -39,6 +39,7 @@ jobs:
                   # Install Incredibuild
                   ls -la /ib-workspace/incredibuild/
                   ls -la /ib-workspace/cache/db/
+                  ls -la /ib-workspace/cache/cache/
                   /ib-workspace/incredibuild/incredibuild.ubin install -I -A /incredibuild -O localhost -D
                   echo "ps after installation" 
                   ps aux
@@ -89,6 +90,7 @@ jobs:
                   # Start Incredibuild with remapped folders
                   /opt/incredibuild/etc/init.d/incredibuild restart
                   ls -la /incredibuild/
+                  ls -la /incredibuild/cache/
 
             - name: Checkout workflow repository
               uses: actions/checkout@v4
