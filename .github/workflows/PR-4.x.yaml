@@ -132,7 +132,7 @@ jobs:
                   set -x
                   echo "::group::Build"
                   cd "$GITHUB_WORKSPACE"
-                  /usr/bin/ib_console --standalone --build-cache-local-shared --build-cache-basedir=$PWD cmake --build build 2>&1 | tee build/log.txt
+                  /usr/bin/ib_console --standalone --build-cache-local-shared --debug=build_cache --build-cache-basedir=$PWD cmake --build build 2>&1 | tee build/log.txt
                   echo "::endgroup::"
 
             - if: ${{ github.event.repository.name != 'opencv_contrib' }}
@@ -164,7 +164,7 @@ jobs:
                   set -x
                   echo "::group::Build"
                   cd "$GITHUB_WORKSPACE"
-                  /usr/bin/ib_console --standalone --build-cache-local-shared --build-cache-basedir=$PWD cmake --build build-contrib 2>&1 | tee build-contrib/log.txt
+                  /usr/bin/ib_console --standalone --build-cache-local-shared --debug=build_cache --build-cache-basedir=$PWD cmake --build build-contrib 2>&1 | tee build-contrib/log.txt
                   echo "::endgroup::"
 
             - name: Check build-contrib warnings
