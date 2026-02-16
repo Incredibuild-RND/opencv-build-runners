@@ -19,8 +19,7 @@ jobs:
             image: "quay.io/opencv-ci/opencv-ubuntu-24.04:20251127"
 
         env:
-            CCACHE_DISABLE: "1"
-            # CCACHE_MAXSIZE: "8G"
+            CCACHE_MAXSIZE: "8G"
             CMAKE_OPT: >-
                 -DBUILD_DOCS=ON
                 -DBUILD_EXAMPLES=ON
@@ -46,10 +45,10 @@ jobs:
                   home: "${{ github.workspace }}"
                   workdir: "${{ github.workspace }}"
 
-            # - name: Create cache directories
-            #   run: |
-            #       mkdir -p "$GITHUB_WORKSPACE/.ccache"
-            #       mkdir -p "$GITHUB_WORKSPACE/binaries_cache"
+            - name: Create cache directories
+              run: |
+                  mkdir -p "$GITHUB_WORKSPACE/.ccache"
+                  mkdir -p "$GITHUB_WORKSPACE/binaries_cache"
 
             - if: ${{ github.event.repository.name != 'opencv_contrib' }}
               name: Configure OpenCV
