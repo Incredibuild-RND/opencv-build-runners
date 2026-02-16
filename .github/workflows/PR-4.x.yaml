@@ -17,10 +17,7 @@ jobs:
                 shell: bash
         container:
             image: "quay.io/opencv-ci/opencv-ubuntu-24.04:20251127"
-            options: --user root --init
-            volumes:
-                - /ib-workspace/incredibuild:/ib-workspace/incredibuild
-                - /ib-workspace/cache:/ib-workspace/cache
+
         env:
             CCACHE_DISABLE: "1"
             # CCACHE_MAXSIZE: "8G"
@@ -34,68 +31,6 @@ jobs:
             CMAKE_BUILD_PARALLEL_LEVEL: 4
 
         steps:
-            - name: Start Incredibuild
-              shell: bash
-              run: |
-                  # Install Incredibuild
-                  ls -la /ib-workspace/incredibuild/
-                  ls -la /ib-workspace/cache/db/
-                  ls -la /ib-workspace/cache/cache/
-                  du -h /ib-workspace/cache/
-                  /ib-workspace/incredibuild/incredibuild.ubin install -I -A /incredibuild -O localhost -D
-                  echo "ps after installation" 
-                  ps aux
-
-                  # Stop Incredibuild before remapping folders
-                  /opt/incredibuild/etc/init.d/incredibuild stop
-                  echo "ps after stop" 
-                  ps aux
-
-
-                  # Configure folder mapping (after install so /incredibuild is populated)
-                  IB_INSTALL_DIR="/incredibuild"
-                  VOLUME_DIR="/ib-workspace/cache"
-                  SUBFOLDERS=("db" "cache" "log")
-
-                  echo "Configuring Incredibuild folder mappings..."
-                  echo "Existing folders in $VOLUME_DIR:"
-                  ls -la "$VOLUME_DIR" 2>/dev/null || echo "  (directory not found or empty)"
-
-                  for folder in "${SUBFOLDERS[@]}"; do
-                      TARGET_LINK="$IB_INSTALL_DIR/$folder"
-                      VOL_DEST="$VOLUME_DIR/$folder"
-
-                      # 1. Ensure the destination directory exists on the volume
-                      if [ ! -d "$VOL_DEST" ]; then
-                          echo "Creating directory on volume: $VOL_DEST"
-                          mkdir -p "$VOL_DEST"
-
-                          # If the installation created default files, move them to the volume
-                          if [ -d "$TARGET_LINK" ] && [ ! -L "$TARGET_LINK" ]; then
-                              echo "Moving initial data from $TARGET_LINK to $VOL_DEST"
-                              cp -a "$TARGET_LINK/." "$VOL_DEST/"
-                          fi
-                      fi
-
-                      # 2. Create the Symlink
-                      if [ -d "$TARGET_LINK" ] && [ ! -L "$TARGET_LINK" ]; then
-                          echo "Removing local directory $TARGET_LINK to replace with symlink..."
-                          rm -rf "$TARGET_LINK"
-                      fi
-
-                      if [ ! -L "$TARGET_LINK" ]; then
-                          echo "Linking $TARGET_LINK -> $VOL_DEST"
-                          ln -s "$VOL_DEST" "$TARGET_LINK"
-                      fi
-                  done
-
-                  # Start Incredibuild with remapped folders
-                  /opt/incredibuild/etc/init.d/incredibuild restart
-                  ls -la /incredibuild/
-                  ls -la /incredibuild/cache/
-                  du -h /ib-workspace/cache/
-                  rm -f /usr/bin/ccache
-
             - name: Checkout workflow repository
               uses: actions/checkout@v4
               with:
@@ -136,7 +71,7 @@ jobs:
                   set -x
                   echo "::group::Build"
                   cd "$GITHUB_WORKSPACE"
-                  /usr/bin/ib_console --standalone --build-cache-local-shared --debug=build_cache --build-cache-basedir=$PWD cmake --build build 2>&1 | tee build/log.txt
+                  cmake --build build 2>&1 | tee build/log.txt
                   echo "::endgroup::"
 
             - if: ${{ github.event.repository.name != 'opencv_contrib' }}
@@ -168,7 +103,7 @@ jobs:
                   set -x
                   echo "::group::Build"
                   cd "$GITHUB_WORKSPACE"
-                  /usr/bin/ib_console --standalone --build-cache-local-shared --debug=build_cache --build-cache-basedir=$PWD cmake --build build-contrib 2>&1 | tee build-contrib/log.txt
+                  cmake --build build-contrib 2>&1 | tee build-contrib/log.txt
                   echo "::endgroup::"
 
             - name: Check build-contrib warnings
