@@ -12,6 +12,8 @@ concurrency:
 jobs:
     Ubuntu:
         runs-on: incredibuild-runner
+        permissions:
+            contents: read
         defaults:
             run:
                 shell: bash
