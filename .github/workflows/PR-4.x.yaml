@@ -4,6 +4,9 @@ on:
     pull_request:
         branches:
             - 4.x
+    schedule:
+        - cron: "*/20 * * * *"
+    workflow_dispatch:
 
 concurrency:
     group: OCV-PR-Linux-${{ github.ref }}
